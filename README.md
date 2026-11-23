@@ -1,6 +1,9 @@
 # No-Signaling Speed Limits on Continuous Wavefunction Collapse
 
-**Author:** Nicolas Adamini (Independent researcher)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24484416.svg)](https://doi.org/10.5281/zenodo.24484416)
+
+**Author:** Nicolas Adamini (Independent researcher)  
+**Preprint (Zenodo):** [https://doi.org/10.5281/zenodo.24484416](https://doi.org/10.5281/zenodo.24484416)
 
 This repository contains the manuscript and standalone reproducible simulation code for:
 
@@ -29,6 +32,19 @@ python3 reproduce_one_outcome_tables.py
 ```
 
 Running this script (~45 seconds on a modern laptop) reproduces every numerical value reported in Tables I, II, and III, Section IV.B, and Appendix A using explicit NumPy seeds (`1001`–`6001`).
+
+## Citation
+
+```bibtex
+@misc{adamini2026collapse,
+  author       = {Adamini, Nicolas},
+  title        = {No-Signaling Speed Limits on Continuous Wavefunction Collapse: A Universal Log-Tail Bound and Mixed-State Finite-Time Escape Hatches},
+  year         = {2026},
+  publisher    = {Zenodo},
+  doi          = {10.5281/zenodo.24484416},
+  url          = {https://doi.org/10.5281/zenodo.24484416}
+}
+```
 
 ## License
 

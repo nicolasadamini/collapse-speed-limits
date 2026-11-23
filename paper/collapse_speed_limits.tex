@@ -1,0 +1,422 @@
+\documentclass[aps,pra,10pt,twocolumn,superscriptaddress,amsmath,amssymb,floatfix]{revtex4-2}
+
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{remark}{Remark}
+
+\newcommand{\Tr}{\mathrm{Tr}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\Li}{\mathrm{Li}}
+\newcommand{\ket}[1]{|#1\rangle}
+\newcommand{\bra}[1]{\langle #1|}
+\newcommand{\braket}[2]{\langle #1|#2\rangle}
+\newcommand{\ketbra}[2]{|#1\rangle\langle #2|}
+
+\begin{document}
+
+\title{No-Signaling Speed Limits on Continuous Wavefunction Collapse:\\
+A Universal Log-Tail Bound and Mixed-State Finite-Time Escape Hatches}
+
+\author{Nicolas Adamini}
+\affiliation{Independent researcher}
+\date{\today}
+
+\begin{abstract}
+Continuous objective collapse models such as Continuous Spontaneous Localization (CSL) prevent operational superluminal signaling by ensuring that ensemble averages obey a linear Lindblad master equation, yet suffer from the ``tails problem'': losing branches retain strictly nonzero amplitudes for all finite times. We establish a $d$-level speed limit (attained for $d=2$ and for single-projector dephasing) governing this obstruction in pure-dephasing measurement dynamics ($[H,P_k]=0$, excluding CSL with a non-commuting kinetic term). For any Markovian continuous It\^o diffusion on pure states $\mathbb{C}P^{d-1}$ unraveling a Born-preserving Lindblad master equation with finite integrated dephasing, no initially populated branch can reach zero in finite time, and every branch obeys a universal log-tail lower bound. For $d=2$, homodyne CSL saturates the pointwise volatility bound and globally minimizes $\E[\ln p_t]$ among all Markovian pure-state unravelings. Keeping Born conservation fixed, we exhibit four sufficient no-signaling escape hatches relaxing continuity, finite integrated dephasing, Markovianity (via a unique Erlang-2 randomized Brody--Hughston mixture), and trajectory purity (via a Markovian continuous mixed-state SDE on density matrices $\mathcal{D}(\mathbb{C}^d \otimes \mathcal{H}_B)$ with an exact closed-form mean collapse time). We cross-check all analytical results with a reproducible standalone Monte Carlo script and detail the scope limits of the mixed-state construction.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:intro}
+
+The measurement (or ``one-outcome'') problem in quantum mechanics asks how a superposition $\ket{\psi_0} = \sum_{j=1}^d \sqrt{p_j(0)} e^{i\phi_j(0)} \ket{j}$ resolves into a single definite outcome $\ket{k^*}$ with Born probability $p_{k^*}(0)$. Dynamical reduction models---most notably Ghirardi--Rimini--Weber (GRW) jump models~\cite{GRW1986} and Continuous Spontaneous Localization (CSL)~\cite{Pearle1989,GPR1990,BassiGhirardi2003,Bassi2013}---modify Schr\"odinger evolution by adding stochastic nonlinear terms that localize macroscopic superpositions while maintaining Born statistics and operational no-signaling~\cite{Gisin1984,Gisin1989,HJW1993}.
+
+A longstanding critique of continuous collapse models is the \emph{tails problem}~\cite{BassiGhirardi2003}: while losing amplitudes decay exponentially fast for practical purposes, they never strictly vanish at any finite time $t < \infty$. Diffusive pure-state unravelings of Markovian Lindblad master equations have been completely parameterized by Wiseman and Di\'osi~\cite{WisemanDiosi2001}, yet the quantitative boundary between asymptotic exponential decay and finite-time attainment has rarely been isolated in closed form. Conversely, naive attempts to force finite-time hitting on pure states---such as imposing a Wright--Fisher martingale $dp_t = \sigma\sqrt{p_t(1-p_t)}\,dW_t$ directly on pure states---break linearity of the ensemble master equation and allow superluminal signaling via the Gisin--Hughston--Jozsa--Wootters (HJW) ensemble effect~\cite{Gisin1989,HJW1993}. Existing finite-time continuous pure-state collapse models evade this obstruction either via singular rates diverging at a preset deadline $T^*$ (Brody and Hughston~\cite{BrodyHughston2005,BrodyHughston2006}) or via non-Markovian colored noise~\cite{Mertens2021}.
+
+This motivates two concrete questions:
+\begin{enumerate}
+\item What is the quantitative speed limit preventing Markovian continuous pure-state unravelings of Born-preserving Gorini--Kossakowski--Sudarshan--Lindblad (GKSL) master equations from achieving zero-tail reduction in finite time?
+\item Which sufficient relaxations of the theorem's hypotheses permit exact finite-time zero-tail collapse while reproducing an exact \emph{autonomous} Lindblad semigroup $\E[\rho_t] = e^{\mathcal{L}t}(\rho_0)$?
+\end{enumerate}
+
+Throughout, let $\mathcal{D}(\mathcal{H}) := \{\rho \in \mathcal{B}(\mathcal{H}) : \rho = \rho^\dagger,\ \rho \ge 0,\ \Tr(\rho)=1\}$ denote the convex set of density matrices on a finite-dimensional Hilbert space $\mathcal{H}$. Section~\ref{sec:nogo} proves an arbitrary-dimension ($d\ge 2$) no-go theorem, universal log-tail floor, and $d=2$ global optimality corollary for homodyne CSL. Section~\ref{sec:exits} exhibits four sufficient escape hatches, analyzing both the unique \emph{Erlang-2 randomized Brody--Hughston} mixture and our \emph{Markovian continuous mixed-state collapse SDE} on $\mathcal{D}(\mathbb{C}^d \otimes \mathcal{H}_B)$. Section~\ref{sec:numerics} illustrates and cross-checks all analytical results from a single reproducible seeded Monte Carlo script, including unbiased signed signaling tests, multi-level ($d=3,4$) benchmarks, step-size convergence audits, and a damped-Rabi non-commuting Hamiltonian test. Section~\ref{sec:discussion} presents a calibrated assessment of physical meaning and limitations.
+
+\section{Pure-State Continuous Zero-Tail No-Go Theorem}
+\label{sec:nogo}
+
+Let $\mathcal{H} = \mathbb{C}^d$ ($d \ge 2$) with orthonormal pointer basis $\{\ket{1},\dots,\ket{d}\}$ and projectors $P_k = \ketbra{k}{k}$. Consider a stochastic pure-state trajectory $\ket{\psi_t} = \sum_{j=1}^d \sqrt{p_j(t)} e^{i\phi_j(t)}\ket{j}$, with $\rho_t = \ketbra{\psi_t}{\psi_t} \in \mathcal{D}(\mathbb{C}^d)$, populations $p_j(t) = \bra{j}\rho_t\ket{j} \ge 0$ ($\sum_{j=1}^d p_j(t)=1$), and coherences $\rho_{jk}(t) = \sqrt{p_j(t)p_k(t)}\,e^{i\theta_{jk}(t)}$ where $\theta_{jk}(t) = \phi_j(t) - \phi_k(t)$. Let $S_0 := \{m \in \{1,\dots,d\} : p_m(0) > 0\}$ be the initial support of $\ket{\psi_0}$.
+
+\begin{theorem}[Pure-State Continuous Zero-Tail No-Go and Universal Log-Tail Floor]
+\label{thm:nogo}
+Suppose $\ket{\psi_t}$ evolves as a Markovian continuous It\^o semimartingale on $\mathbb{C}P^{d-1}$ driven by an $m$-dimensional standard Brownian motion $\vec{W}_t$ such that, for every starting time $s \ge 0$ and every initial pure state $\rho_s = \ketbra{\psi_s}{\psi_s}$, the ensemble average $\bar{\rho}_t = \E[\rho_t]$ ($t \ge s$) obeys a linear GKSL master equation $\dot{\bar{\rho}}_t = \mathcal{L}_t(\bar{\rho}_t)$ satisfying:
+\begin{enumerate}
+\item[(i)] \emph{Exact Born conservation:} $\bra{k}\mathcal{L}_t(\rho)\ket{k} = 0$ for all $\rho \in \mathcal{D}(\mathbb{C}^d)$, all $k \in \{1,\dots,d\}$, and all $t \ge 0$;
+\item[(ii)] \emph{Finite integrated dephasing:} for every finite $T < \infty$, $\int_0^T \Gamma_{\max}(t)\,dt < \infty$, where $\Gamma_{\max}(t) := \max_{j \ne k}\Gamma_{jk}(t)$ is the maximum pairwise dephasing rate of $\mathcal{L}_t$.
+\end{enumerate}
+Then:
+\begin{enumerate}
+\item[(a)] Every Lindblad jump operator $L_\alpha(t)$ and Hamiltonian $H(t)$ in $\mathcal{L}_t$ is diagonal in $\{\ket{k}\}$, so $\bra{j}\mathcal{L}_t(\rho)\ket{k} = (-\Gamma_{jk}(t) - i\omega_{jk}(t))\rho_{jk}$ with $\Gamma_{jk}(t) = \frac{1}{2}\sum_\alpha |\ell_{\alpha,j}(t)-\ell_{\alpha,k}(t)|^2 \ge 0$.
+\item[(b)] For any $m \notin S_0$, $p_m(t) = 0$ a.s.\ for all $t \ge 0$. On the open face $\{p_m > 0\ \forall m \in S_0\}$, $dp_j = \vec{\sigma}_j \cdot d\vec{W}_t$ (zero drift) and $d\theta_{jk} = \mu_{jk}\,dt + \vec{\eta}_{jk}\cdot d\vec{W}_t$, where the logarithmic volatilities $\vec{v}_j := \vec{\sigma}_j / p_j$ ($j \in S_0$) obey the exact pairwise identity
+\begin{equation}
+\label{eq:pairwise}
+\frac{1}{8}\|\vec{v}_j - \vec{v}_k\|^2 + \frac{1}{2}\|\vec{\eta}_{jk}\|^2 = \Gamma_{jk}(t) \qquad (\forall j \ne k \in S_0),
+\end{equation}
+and the pointwise bound
+\begin{equation}
+\label{eq:vbound}
+\|\vec{v}_j\|^2 \le 8\Gamma_{\max}(t)\,(1 - p_j)^2.
+\end{equation}
+\item[(c)] \emph{Strict non-attainment (irreducible tails):} for every initially populated branch $j \in S_0$,
+\begin{equation}
+\label{eq:nonattain}
+\Prob\bigl(p_j(t) > 0 \text{ for all } t \in [0,\infty)\bigr) = 1.
+\end{equation}
+\item[(d)] \emph{Universal log-tail floor:} for all $t \ge 0$ and all $j \in S_0$,
+\begin{align}
+\label{eq:logfloor}
+\E\!\left[\ln\frac{p_j(t)}{p_j(0)}\right] &\ge -4\int_0^t \Gamma_{\max}(s)\,\E\bigl[(1-p_j(s))^2\bigr]\,ds \nonumber\\
+&\ge -4\bigl(1-p_j(0)\bigr)\int_0^t \Gamma_{\max}(s)\,ds,
+\end{align}
+where the second inequality is strict whenever $|S_0| \ge 2$ and $\int_0^t \Gamma_{\max}(s)\,ds > 0$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\emph{Part (a).} Write $\mathcal{L}_t(\rho) = -i[H,\rho] + \sum_\alpha (L_\alpha\rho L_\alpha^\dagger - \frac{1}{2}\{L_\alpha^\dagger L_\alpha,\rho\})$. Evaluating condition~(i) on $\rho = \ketbra{m}{m}$ for $m \ne k$ gives $0 = \sum_\alpha |\bra{k}L_\alpha\ket{m}|^2$, hence every $L_\alpha$ is diagonal: $L_\alpha = \sum_k \ell_{\alpha,k}\ketbra{k}{k}$. Consequently, the dissipative term has zero diagonal on any off-diagonal operator, so evaluating condition~(i) on $\ketbra{k}{m}+\ketbra{m}{k}$ and $i(\ketbra{k}{m}-\ketbra{m}{k})$ forces $\bra{k}H\ket{m}=0$ for all $k\ne m$. Evaluating $\mathcal{L}_t$ on $\ketbra{j}{k}$ yields
+\begin{align*}
+\bra{j}\mathcal{L}_t(\ketbra{j}{k})\ket{k}
+&= -i(E_j-E_k) \\
+&\quad + \sum_\alpha\!\left(\ell_{\alpha,j}\ell_{\alpha,k}^* - \frac{|\ell_{\alpha,j}|^2 + |\ell_{\alpha,k}|^2}{2}\right),
+\end{align*}
+whose real part is $-\Gamma_{jk}(t) = -\frac{1}{2}\sum_\alpha |\ell_{\alpha,j}-\ell_{\alpha,k}|^2 \le 0$.
+
+\emph{Part (b).} If $m \notin S_0$, then $p_m(t) \ge 0$ and $\E[p_m(t)] = p_m(0) = 0$ for all $t \ge 0$, so $p_m(t) = 0$ a.s.\ for all $t \ge 0$ by path continuity. If $|S_0| = 1$, then $p_j(t) \equiv 1$ and all claims hold trivially. Assume $|S_0| \ge 2$, fix $\epsilon \in (0, \min_{m \in S_0} p_m(0))$, and work up to the stopping time $\tau_\epsilon := \inf\{t \ge 0 : \min_{m \in S_0} p_m(t) \le \epsilon\}$. Because the diffusion is Markovian and satisfies the GKSL average when initialized at any time $s \ge 0$ from any pure state $\ket{\psi_s}$, the population drift vanishes identically: $\mu_j(\ket{\psi_s},s) = \frac{d}{dt}\E[p_j(t)]\big|_{t=s^+} = \bra{j}\mathcal{L}_s(\ketbra{\psi_s}{\psi_s})\ket{j} = 0$, giving $dp_j = \vec{\sigma}_j\cdot d\vec{W}_t$.
+
+Applying It\^o's lemma to $\rho_{jk} = g(p_j,p_k)\,e^{i\theta_{jk}}$ ($j \ne k \in S_0$) with $g(x,y)=\sqrt{xy}$ ($g_x = \frac{g}{2x}$, $g_y = \frac{g}{2y}$, $g_{xx} = -\frac{g}{4x^2}$, $g_{yy} = -\frac{g}{4y^2}$, $g_{xy} = +\frac{g}{4xy}$) gives
+\begin{align*}
+\frac{dg}{g} &= \frac{1}{2}(\vec{v}_j+\vec{v}_k)\cdot d\vec{W}_t - \frac{1}{8}\|\vec{v}_j - \vec{v}_k\|^2\,dt, \\
+\frac{d(e^{i\theta_{jk}})}{e^{i\theta_{jk}}} &= \left(i\mu_{jk} - \frac{1}{2}\|\vec{\eta}_{jk}\|^2\right)dt + i\vec{\eta}_{jk}\cdot d\vec{W}_t,
+\end{align*}
+while the cross quadratic variation $d\langle g, e^{i\theta_{jk}}\rangle / \rho_{jk} = \frac{i}{2}(\vec{v}_j+\vec{v}_k)\cdot\vec{\eta}_{jk}\,dt$ is purely imaginary. Equating the real part of the drift of $\rho_{jk}/\rho_{jk}$ at any face-interior pure state to $-\Gamma_{jk}(t)$ yields Eq.~\eqref{eq:pairwise}, which is the pure-dephasing specialization of the Wiseman--Di\'osi parameterization of diffusive unravelings~\cite{WisemanDiosi2001}.
+
+Since $\sum_{k \in S_0} p_k(t) = 1$, we have $\sum_{k \in S_0} p_k \vec{v}_k = \sum_{k \in S_0} \vec{\sigma}_k = \vec{0}$, so $\vec{v}_j = \sum_{k \in S_0 \setminus \{j\}} p_k(\vec{v}_j - \vec{v}_k)$. By the triangle inequality and Eq.~\eqref{eq:pairwise} ($\|\vec{v}_j - \vec{v}_k\| \le \sqrt{8\Gamma_{jk}} \le \sqrt{8\Gamma_{\max}}$),
+\begin{equation*}
+\|\vec{v}_j\| \le \sum_{k \in S_0 \setminus \{j\}} p_k \|\vec{v}_j - \vec{v}_k\| \le \sqrt{8\Gamma_{\max}(t)}\,(1-p_j),
+\end{equation*}
+and squaring gives Eq.~\eqref{eq:vbound}.
+
+\emph{Parts (c)--(d).} On $[0, \tau_\epsilon)$, It\^o's lemma on $\ln p_j(t)$ yields
+\begin{equation}
+\label{eq:logp_sde}
+\ln\frac{p_j(t \wedge \tau_\epsilon)}{p_j(0)} = M_j(t \wedge \tau_\epsilon) - \frac{1}{2}\int_0^{t \wedge \tau_\epsilon} \|\vec{v}_j(s)\|^2\,ds,
+\end{equation}
+where $M_j(u) := \int_0^u \vec{v}_j(s)\cdot d\vec{W}_s$ is a continuous martingale with quadratic variation $\langle M_j\rangle_{T \wedge \tau_\epsilon} \le 8\int_0^T \Gamma_{\max}(s)\,ds < \infty$ uniformly in $\epsilon > 0$. By the Dambis--Dubins--Schwarz theorem~\cite{RevuzYor1999}, $M_j$ is a time-changed Brownian motion evaluated on a deterministically bounded clock interval $[0, 8\int_0^T\Gamma_{\max}(s)\,ds]$, so $\sup_{t \in [0,T]} |M_j(t \wedge \tau_\epsilon)|$ has Gaussian tails independent of $\epsilon$, while the drift in Eq.~\eqref{eq:logp_sde} is bounded below by $-4\int_0^T\Gamma_{\max}(s)\,ds$. Hence $\lim_{\epsilon\downarrow 0}\Prob(\tau_\epsilon \le T) = 0$ for every finite $T$, proving $\tau_0 := \lim_{\epsilon\downarrow 0}\tau_\epsilon = \infty$ a.s., i.e., Eq.~\eqref{eq:nonattain}. Taking expectations in Eq.~\eqref{eq:logp_sde}, letting $\epsilon\downarrow 0$ (justified by $L^2$-boundedness of $M_j$ and boundedness of the drift), and substituting Eq.~\eqref{eq:vbound} gives the first inequality in Eq.~\eqref{eq:logfloor}. Since $p_j(s)\in(0,1)$ a.s.\ when $|S_0|\ge 2$, we have $(1-p_j(s))^2 < 1-p_j(s)$ and $\E[(1-p_j(s))^2] < \E[1-p_j(s)] = 1-p_j(0)$, yielding the second (strict) inequality in Eq.~\eqref{eq:logfloor}.
+\end{proof}
+
+\begin{corollary}[Pointwise Saturation and $d=2$ Global Optimality of Homodyne CSL]
+\label{cor:csl}
+For $d=2$ with constant dephasing rate $\Gamma > 0$ and $p_0 \in (0,1)$:
+\begin{enumerate}
+\item[(a)] Standard homodyne CSL ($dp_t^{\mathrm{CSL}} = \sqrt{8\Gamma}\,p_t^{\mathrm{CSL}}(1-p_t^{\mathrm{CSL}})\,dW_t$, $d\theta_t = 0$) satisfies $\|\vec{v}_1\|^2 = 8\Gamma(1-p_t^{\mathrm{CSL}})^2$, saturating Eq.~\eqref{eq:vbound} with equality and achieving $\E[\ln(p_t^{\mathrm{CSL}}/p_0)] = -4\Gamma\int_0^t \E[(1-p_s^{\mathrm{CSL}})^2]\,ds$.
+\item[(b)] Among all $d=2$ Markovian continuous pure-state unravelings of $\Gamma$, homodyne CSL globally minimizes $\E[\ln p_t]$ at every $t \ge 0$:
+\begin{equation}
+\label{eq:csl_opt}
+\E[\ln p_t] \ge \E[\ln p_t^{\mathrm{CSL}}] > \ln p_0 - 4(1-p_0)\Gamma t.
+\end{equation}
+\end{enumerate}
+\end{corollary}
+
+\begin{proof}
+Part~(a) is immediate from Eq.~\eqref{eq:pairwise} with $\vec{\eta}_{12} = 0$. For Part~(b), any $d=2$ unraveling satisfying Eq.~\eqref{eq:pairwise} has $\|\vec{\sigma}_1\|^2 = 8\Gamma(1-\alpha_t)\,p_t^2(1-p_t)^2$ with adapted $\alpha_t := \|\vec{\eta}_{12}\|^2/(2\Gamma) \in [0,1]$. Define the continuous non-decreasing clock $A(t) := \int_0^t (1-\alpha_s)\,ds \le t$ and its right-continuous inverse $T(u) := \inf\{t \ge 0 : A(t) > u\}$. By the Dambis--Dubins--Schwarz theorem~\cite{RevuzYor1999}---extending the probability space with an independent Brownian motion beyond $A(\infty)$ whenever $A(\infty)<\infty$ so that the time-changed process is defined for all $u \ge 0$---the process $\tilde{p}_u := p_{T(u)}$ solves the homodyne CSL SDE $d\tilde{p}_u = \sqrt{8\Gamma}\tilde{p}_u(1-\tilde{p}_u)\,d\tilde{W}_u$ on $\tilde{\mathcal{F}}_u = \mathcal{F}_{T(u)}$, and $p_t = \tilde{p}_{A(t)}$ where $A(t) \le t$ is a bounded $\tilde{\mathcal{F}}_u$-stopping time (since $\{A(t)\le u\}=\{T(u)\ge t\}\in\tilde{\mathcal{F}}_u$). Because $\tilde{p}_u$ is a positive martingale and $x \mapsto \ln x$ is concave, $\ln \tilde{p}_u$ is a supermartingale bounded above by $0$ with finite expectation at $t$. By Doob's optional stopping theorem, $\E[\ln p_t] = \E[\ln \tilde{p}_{A(t)}] \ge \E[\ln \tilde{p}_t] = \E[\ln p_t^{\mathrm{CSL}}]$. The strict right-hand inequality follows because $(1-p_s^{\mathrm{CSL}})^2 < 1-p_s^{\mathrm{CSL}}$ on $(0,1)$.
+\end{proof}
+
+\begin{remark}[Sharpness for $d\ge 3$ and Scope]
+Theorem~\ref{thm:nogo} relies on five hypotheses: Markovianity, path continuity, pure-state trajectories, Born conservation~(i), and finite integrated dephasing~(ii). Hypothesis~(i) restricts the master equation to pure dephasing ($[H,P_k]=0$), excluding CSL with a non-commuting kinetic Hamiltonian. For $d \ge 3$, equality in the triangle-inequality bound~\eqref{eq:vbound} for a fixed branch $j$ requires all $\vec{v}_j - \vec{v}_k$ ($k \ne j$) to align with identical length $\sqrt{8\Gamma_{\max}}$ (so $\vec{v}_k = -\frac{p_j}{1-p_j}\vec{v}_j$ for all $k\ne j$, implying $\vec{v}_k - \vec{v}_l = \vec{0}$ for $k,l\ne j$). This cannot hold for all branches simultaneously. Moreover, in the Wiseman--Di\'osi representation $\vec{v}_a - \vec{v}_b = 2\,\mathrm{Re}(\vec{\ell}_a - \vec{\ell}_b)$ and $\vec{\eta}_{ab} = \mathrm{Im}(\vec{\ell}_a - \vec{\ell}_b)$ (where $\Gamma_{ab} = \frac{1}{2}\|\vec{\ell}_a-\vec{\ell}_b\|^2$), equality for branch $j$ is realized by the admissible single-channel homodyne unraveling of $L = \sqrt{2\Gamma}\,P_j$ (for which $\Gamma_{jk}=\Gamma$ and $\Gamma_{kl}=0$ for $k,l\ne j$), whereas for \emph{uniform} dephasing ($\Gamma_{ab}=\Gamma\ \forall a\ne b$) the vectors $\{\vec{\ell}_a\}$ form a regular $(d-1)$-simplex of edge $\sqrt{2\Gamma}$, making simultaneous alignment with $\|\mathrm{Re}(\vec{\ell}_j-\vec{\ell}_k)\|=\sqrt{2\Gamma}$ impossible for $d \ge 3$ (forcing $\mathrm{Im}(\vec{\ell}_k)=\mathrm{Im}(\vec{\ell}_j)$ and hence $\Gamma_{kl}=0$, a contradiction). Determining the tight optimal constant in Eq.~\eqref{eq:vbound} for uniform dephasing when $d \ge 3$ remains an interesting open geometric problem.
+\end{remark}
+
+\section{Sufficient No-Signaling Escape Hatches}
+\label{sec:exits}
+
+Keeping exact Born conservation~(i) and operational no-signaling fixed, we exhibit four sufficient escape hatches relaxing each of the remaining four hypotheses of Theorem~\ref{thm:nogo} to achieve exact finite-time zero-tail collapse ($\Prob(\tau_{\mathrm{hit}} < \infty) = 1$):
+\begin{itemize}
+\item \textbf{Exit A (Drop Continuity):} Projective Poisson jumps ($\rho_t \to \ketbra{k}{k}$ with probability $p_k(0)$ at rate $\Gamma$) are Markovian, pure-state, obey $\E[\rho_t]=e^{\mathcal{L}t}(\rho_0)$, and collapse in mean time $\E[\tau] = 1/\Gamma$.
+\item \textbf{Exit B (Drop Finite Integrated Dephasing):} Deterministic finite-time bridges of Brody--Hughston type~\cite{BrodyHughston2005,BrodyHughston2006} are obtained by time-changing homodyne CSL via $\tau(t) = -\ln(1 - t/T^*)$ on $[0, T^*)$, corresponding to the singular dephasing rate $\Gamma(t) = (T^*-t)^{-1}$ with $\int_0^{T^*}\Gamma(t)\,dt = \infty$, forcing continuous pure-state hitting at the preset deadline $T^*$.
+\end{itemize}
+We now analyze the two remaining relaxations, both of which reproduce the exact \emph{autonomous} Lindblad semigroup $e^{\mathcal{L}t}$.
+
+\subsection{Exit C: Drop Markovianity (Randomized Brody--Hughston Mixture)}
+\label{sec:exitC}
+
+Sample a hidden, state-independent collapse deadline $T > 0$ once at $t=0$ from an Erlang-2 (Gamma$(2,\Gamma)$) density,
+\begin{equation}
+\label{eq:erlang2}
+f_T(s) = \Gamma^2 s\, e^{-\Gamma s} \qquad (s > 0), \qquad \E[T] = \frac{2}{\Gamma}.
+\end{equation}
+Conditional on $T$, evolve $\ket{\psi_t}$ on $[0, T)$ via the Exit~B bridge with singular rate $\Gamma_T(t) = (T-t)^{-1}$ (generated by $L_k(t) = \sqrt{\Gamma_T(t)}\,P_k$ for $d \ge 2$; for $d=2$, $dp_t = \sqrt{\frac{8}{T-t}}\,p_t(1-p_t)\,dW_t$), absorbing continuously at $\ketbra{k^*}{k^*}$ as $t \uparrow T$.
+
+\begin{proposition}[Uniqueness of the Erlang-2 Deadline Density for Exit C]
+Under the randomized Brody--Hughston bridge with deadline density $f_T$, every trajectory $t \mapsto \ket{\psi_t}$ is continuous, pure, and converges continuously to $\ket{k^*}$ at finite time $T<\infty$ with Born probability $p_{k^*}(0)$. Furthermore, the unconditional ensemble average satisfies the autonomous Lindblad semigroup
+\begin{equation}
+\label{eq:exitC_lindblad}
+\E_{T,W}[\rho_{jk}(t)] = \rho_{jk}(0)\, e^{-\Gamma t} \qquad (\forall t \ge 0,\ j \ne k)
+\end{equation}
+if and only if $f_T$ is the Erlang-2 density~\eqref{eq:erlang2}.
+\end{proposition}
+
+\begin{proof}
+Under $\tau(t) = -\ln(1-t/T)$, the conditional process on $[0, T)$ is unit-rate homodyne CSL evaluated at $\tau(t)\to\infty$ as $t\uparrow T$, yielding conditional coherence $\E_W[\rho_{jk}(t)\mid T] = \rho_{jk}(0)(1-t/T)\mathbf{1}_{\{T>t\}}$. Averaging over $f_T$ equates Eq.~\eqref{eq:exitC_lindblad} to $\int_t^\infty f_T(s)(1 - t/s)\,ds = e^{-\Gamma t}$ for all $t \ge 0$. Differentiating once with respect to $t$ gives $-\int_t^\infty \frac{f_T(s)}{s}\,ds = -\Gamma e^{-\Gamma t}$, and differentiating a second time uniquely fixes $f_T(t) = \Gamma^2 t e^{-\Gamma t}$. Direct integration verifies the converse. Because $T$ is independent of the initial state, linearity extends to arbitrary bipartite states $\rho_{AB}(0)$, ensuring operational no-signaling.
+\end{proof}
+
+Exit~C is Exit~B averaged over random deadlines: conditional on $T$, the integrated rate still diverges, so hypothesis~(ii) is restored only at the ensemble level at the expense of Markovianity.
+
+\subsection{Exit D: Drop Trajectory Purity (Markovian Mixed-State Continuous Collapse)}
+\label{sec:exitD}
+
+If we retain \emph{autonomous Markovian} dynamics on the quantum state space, \emph{continuous} paths, \emph{exact} finite-time zero-tail collapse, and linear Lindblad ensemble averages, Theorem~\ref{thm:nogo} forces trajectories to leave the pure-state boundary and pass transiently through the interior of $\mathcal{D}(\mathcal{H})$.
+
+\subsubsection{Stage-Gated Markovian Mixed-State SDE (Exit D1)}
+Let $\rho_{AB}(t) \in \mathcal{D}(\mathbb{C}^d_A \otimes \mathcal{H}_B)$ represent the global state of all degrees of freedom entangled with subsystem $A$, undergoing a pointer-commuting measurement ($[H, P_k]=0$) in Alice's basis $P_j = \ketbra{j}{j}_A \otimes I_B$. Decompose $\rho_{AB} = D + \rho_{\mathrm{off}}$ where $D = \sum_{j=1}^d P_j \rho_{AB} P_j = \sum_{j=1}^d \ketbra{j}{j}_A \otimes A_j$ ($A_j \ge 0$, $p_j = \Tr(A_j)$) and $\rho_{\mathrm{off}} = \sum_{j \ne k} P_j \rho_{AB} P_k$. Define the Markovian spectral coherence parameter
+\begin{equation}
+\label{eq:mu_def}
+\mu(\rho_{AB}) := -\lambda_{\min}\!\left(D^{-1/2}\rho_{\mathrm{off}} D^{-1/2}\right) \in [0, 1],
+\end{equation}
+using the Moore--Penrose pseudoinverse on $\mathrm{supp}(D)$. We note three properties: (1)~$\rho_{AB} \ge 0 \iff \mu(\rho_{AB}) \le 1$, $\rho_{\mathrm{off}} = 0 \iff \mu(\rho_{AB}) = 0$, and any pure superposition has $\mu = 1$; (2)~for a single qubit ($d=2, d_B=1$), $\mu(\rho) = |\rho_{01}|/\sqrt{p(1-p)}$; (3)~on any uncorrelated product state $\rho_{AB} = \rho_A \otimes \rho_B$, $\mu(\rho_A\otimes\rho_B) = \mu(\rho_A)$ is strictly independent of $\rho_B$, whereas on an entangled state (e.g., $\ket{\Phi^+}$), $\mu(\rho_A)=0$ while $\mu(\rho_{AB})=1$, so the dynamics is fundamentally defined on the global density matrix.
+
+With independent Brownian motions $W^{(1)}$ and antisymmetric $W^{(2)}_{jk} = -W^{(2)}_{kj}$ ($1 \le j < k \le d$), define the autonomous Markovian continuous SDE on $\mathcal{D}(\mathbb{C}^d_A \otimes \mathcal{H}_B)$ by concatenating two stages at the stopping time $\tau_1 := \inf\{t \ge 0 : \mu_t = 0\}$:
+\begin{align}
+\label{eq:D1_off}
+d\rho_{\mathrm{off}} &= -\Gamma \rho_{\mathrm{off}}\,dt + \sqrt{2\Gamma\mu_t(1-\mu_t)}\,\frac{\rho_{\mathrm{off}}}{\mu_t}\,dW_t^{(1)}, \\
+\label{eq:D1_diag}
+dA_j &= \sigma_p\,\mathbf{1}_{\{\mu_t = 0\}} \sum_{k \ne j} \sqrt{p_j p_k}\,\frac{A_j}{p_j}\,dW_{jk}^{(2)},
+\end{align}
+where $\sigma_p > 0$ is a free selection-rate parameter and $\rho_{\mathrm{off}}$ is absorbed at $0$ upon hitting $\mu_t = 0$. (In Phase~1, $\rho_{\mathrm{off}}(t)/\mu_t = \rho_{\mathrm{off}}(0)/\mu_0$ is a fixed bounded operator, avoiding any $0\cdot\infty$ indeterminacy at $\mu_t = 0$; the discontinuous indicator $\mathbf{1}_{\{\mu_t=0\}}$ simply marks concatenation of the Phase~2 diffusion onto Phase~1 at $\tau_1$.)
+
+\begin{theorem}[Exact Properties of Exit D1]
+\label{thm:exitD1}
+For any initial state $\rho_{AB}(0) \in \mathcal{D}(\mathbb{C}^d_A \otimes \mathcal{H}_B)$ with $\mu_0 = \mu(\rho_{AB}(0)) \in (0, 1]$ and $p_j(0) = \Tr(A_j(0))$:
+\begin{enumerate}
+\item[(a)] \emph{Existence, uniqueness in law, continuity, and bipartite positivity:} Concatenating Eq.~\eqref{eq:D1_diag} onto Eq.~\eqref{eq:D1_off} at $\tau_1$ defines a continuous Markov process on $\mathcal{D}(\mathbb{C}^d_A \otimes \mathcal{H}_B)$ that is unique in law (and pathwise unique for $d=2$) and satisfies $\rho_{AB}(t) \ge 0$ and $\Tr(\rho_{AB}(t)) = 1$ a.s.\ for all $t \ge 0$.
+\item[(b)] \emph{Exact linear GKSL average and operational no-signaling:} $\E[\rho_{AB}(t)] = (e^{\mathcal{L}_A t} \otimes \mathcal{I}_B)(\rho_{AB}(0))$ identically for all $t \ge 0$ (a completely positive trace-preserving linear map on $\mathcal{D}(\mathbb{C}^d_A \otimes \mathcal{H}_B)$), guaranteeing $\E[\rho_B(t)] = \rho_B(0)$ regardless of Alice's basis or $\sigma_p$.
+\item[(c)] \emph{Finite-time zero-tail collapse and exact mean time:} Let $\tau_{\mathrm{tot}} = \inf\{t \ge 0 : \max_j p_j(t) = 1\}$. Then $\tau_{\mathrm{tot}} < \infty$ a.s., $\rho_{AB}(\tau_1) = D_0$ is the Lindblad decohered state, $\rho_{AB}(\tau_{\mathrm{tot}}) = \ketbra{k^*}{k^*}_A \otimes (A_{k^*}(0)/p_{k^*}(0))$ is the exact L\"uders post-measurement state with Born probability $\Prob(k^* = j) = p_j(0)$, and
+\begin{align}
+\label{eq:exact_tau}
+\E[\tau_{\mathrm{tot}}] &= \frac{1}{\Gamma}\!\left(\frac{\pi^2}{6} - \Li_2(1-\mu_0)\right) \nonumber\\
+&\quad - \frac{2}{\sigma_p^2}\sum_{j=1}^d (1-p_j(0))\ln(1-p_j(0)).
+\end{align}
+For any pure superposition ($\mu_0=1$) and any $d \ge 2$, $\E[\tau_{\mathrm{tot}}] \le \frac{\pi^2}{6\Gamma} + \frac{2}{\sigma_p^2}$ uniformly in $d$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+\emph{Phase 1 ($t \in [0, \tau_1]$):} While $\mu_t > 0$, $dA_j = 0$, so $D_t = D_0$ is constant and $\rho_{\mathrm{off}}(t) = (\mu_t/\mu_0)\rho_{\mathrm{off}}(0)$, where $\mu_t$ satisfies the 1D Jacobi diffusion
+\begin{equation}
+\label{eq:mu_sde}
+d\mu_t = -\Gamma\mu_t\,dt + \sqrt{2\Gamma\mu_t(1-\mu_t)}\,dW_t^{(1)}.
+\end{equation}
+Since $\sqrt{2\Gamma\mu(1-\mu)}$ is $1/2$-H\"older continuous on $[0,1]$, Eq.~\eqref{eq:mu_sde} has a pathwise unique strong solution by the Yamada--Watanabe theorem~\cite{YamadaWatanabe1971}. Under $\mu_t = \sin^2(y_t/2)$ ($y_t \in [0,\pi]$), It\^o's lemma gives $dy_t = -\frac{\Gamma}{\sin y_t}\,dt + \sqrt{2\Gamma}\,dW_t^{(1)}$. Near $y=\pi$ ($\mu=1$), $w = \pi - y$ obeys $dw \approx \frac{\Gamma}{w}\,dt - \sqrt{2\Gamma}\,dW_t^{(1)}$, a 2D Bessel process ($\delta = 2$), for which $\mu=1$ is a Feller \emph{entrance} boundary~\cite{RevuzYor1999}: $\mu_t$ enters $(0,1)$ immediately and never exceeds $1$. On $\mathrm{supp}(D_0)$,
+\begin{align*}
+D_0^{-1/2}\rho_{AB}(t)D_0^{-1/2}
+&= \Pi_{\mathrm{supp}(D_0)} + \frac{\mu_t}{\mu_0}D_0^{-1/2}\rho_{\mathrm{off}}(0)D_0^{-1/2} \\
+&\ge (1-\mu_t)\Pi_{\mathrm{supp}(D_0)} \ge 0,
+\end{align*}
+establishing $\rho_{AB}(t) \ge 0$. Near $y=0$ ($\mu=0$), $dy_t \approx -\frac{\Gamma}{y_t}\,dt + \sqrt{2\Gamma}\,dW_t^{(1)}$ is a 0D Bessel process, so $\mu=0$ is an attainable \emph{exit} boundary hit in finite time $\tau_1 < \infty$ a.s. Moreover, $d(e^{\Gamma t}\mu_t) = e^{\Gamma t}\sqrt{2\Gamma\mu_t(1-\mu_t)}\,dW_t^{(1)}$ has bounded volatility on every finite $[0, T]$, making $e^{\Gamma t}\mu_t$ a true martingale; hence $\E[\mu_t] = \mu_0 e^{-\Gamma t}$ and $\E[\rho_{\mathrm{off}}(t)] = e^{-\Gamma t}\rho_{\mathrm{off}}(0)$ even after absorption at $\mu=0$. Solving the backward Kolmogorov ODE $\Gamma\mu(1-\mu)T_1'' - \Gamma\mu T_1' = -1$ ($T_1(0)=0$, $T_1'(1)$ finite) via $\frac{d}{d\mu}[(1-\mu)T_1'] = -(\Gamma\mu)^{-1}$ yields $T_1'(\mu) = -\frac{\ln\mu}{\Gamma(1-\mu)}$ and $T_1(\mu_0) = -\frac{1}{\Gamma}\int_0^{\mu_0}\frac{\ln x}{1-x}\,dx = \frac{1}{\Gamma}[\frac{\pi^2}{6} - \Li_2(1-\mu_0)]$.
+
+\emph{Phase 2 ($t \ge \tau_1$):} Concatenating Eq.~\eqref{eq:D1_diag} at $\tau_1$ (where $\rho_{\mathrm{off}}\equiv 0$) gives $A_j(t) = p_j(t)\hat{A}_j$ with constant normalized blocks $\hat{A}_j = A_j(0)/p_j(0) \ge 0$ and $dp_j = \sigma_p \sum_{k \ne j}\sqrt{p_j p_k}\,dW_{jk}^{(2)}$. Antisymmetry $dW_{kj}^{(2)} = -dW_{jk}^{(2)}$ yields $\sum_j dp_j = 0$, $\E[dp_j]=0$, $d\langle p_j,p_j\rangle = \sigma_p^2 p_j(1-p_j)\,dt$, and $d\langle p_j,p_k\rangle = -\sigma_p^2 p_j p_k\,dt$ ($j \ne k$), which is the standard $d$-allele neutral Kimura/Wright--Fisher diffusion on the $(d-1)$-simplex~\cite{Kimura1955,Littler1975,Baxter2007}, uniquely determined in law for all $d \ge 2$~\cite{Ethier1976} (and pathwise unique for $d=2$ by Yamada--Watanabe~\cite{YamadaWatanabe1971}). Its generator $\mathcal{A} = \frac{\sigma_p^2}{2}\sum_j p_j(1-p_j)\partial_j^2 - \frac{\sigma_p^2}{2}\sum_{j\ne k} p_j p_k \partial_j\partial_k$ applied to $T_2(p) = -\frac{2}{\sigma_p^2}\sum_{j=1}^d (1-p_j)\ln(1-p_j)$ satisfies $\mathcal{A} T_2 = -\sum_j p_j = -1$ with $T_2=0$ at every pure vertex, establishing Eq.~\eqref{eq:exact_tau} and finite-time fixation onto a single vertex $k^*$ with martingale probability $\Prob(k^*=j) = p_j(0)$. Finally, $h(p) := p + (1-p)\ln(1-p)$ satisfies $h(0)=0$ and $h'(p) = -\ln(1-p) \ge 0$, so $-(1-p_j)\ln(1-p_j) \le p_j$, giving $\E[\tau_{\mathrm{tot}}-\tau_1] \le \frac{2}{\sigma_p^2}$.
+\end{proof}
+
+\begin{remark}[Physical Mechanism of Exit D1]
+At $\tau_1$, \emph{every} trajectory sits at the exact same decohered state $D_0$, so Phase~1 carries no outcome information. Outcome selection occurs entirely in Phase~2 via a classical neutral Wright--Fisher process on the populations of $D_0$. Operational no-signaling holds because $\rho_0 \mapsto \E[\rho_t]$ is linear on $\mathcal{D}(\mathcal{H})$ (whereas Gisin's argument~\cite{Gisin1989} assumes pure-state ontology). Conceptually, during $[0,\tau_{\mathrm{tot}})$ losing weights are relocated from pure-state amplitudes into classical mixed-state populations before hitting exact zero at $\tau_{\mathrm{tot}} < \infty$.
+\end{remark}
+
+\subsubsection{Two-Observer Commuting Extension on Extended State $(\rho_{AB},\mu_A,\mu_B)$}
+\label{sec:two_obs}
+
+Extending single-observer D1 to two simultaneous observers measuring $Z_A$ (rate $\Gamma_A$) and $B_\theta = \cos\theta\,Z_B + \sin\theta\,X_B$ (rate $\Gamma_B$) on $\ket{\Phi^+} = \frac{1}{\sqrt{2}}(\ket{00}+\ket{11})$ highlights a structural subtlety. In the commuting joint eigenbasis $\{\ket{0,b_0},\ket{0,b_1},\ket{1,b_0},\ket{1,b_1}\}$, evolve two independent local Jacobi decoherence factors $(\mu_A,\mu_B)$ via Eq.~\eqref{eq:mu_sde} acting by Hadamard (Schur) multipliers $\rho_{AB}(t) = \rho_{AB}(0) \circ H_A(\mu_A) \circ H_B(\mu_B)$, where $H_A(\mu_A) = \begin{pmatrix}1 & \mu_A\\ \mu_A & 1\end{pmatrix}_A \otimes J_B \ge 0$ and $H_B(\mu_B) = J_A \otimes \begin{pmatrix}1 & \mu_B\\ \mu_B & 1\end{pmatrix}_B \ge 0$ (with $J$ the all-ones matrix), with Alice's Wright--Fisher block rescaling starting when $\mu_A=0$ and Bob's starting when $\mu_B=0$.
+
+By the Schur product theorem, this dynamics preserves $\rho_{AB}(t) \ge 0$, reproduces $(e^{\mathcal{L}_A t}\otimes e^{\mathcal{L}_B t})(\rho_{AB}(0))$, satisfies two-way no-signaling, and makes every joint population $P_{ab}(t)$ a martingale ($dW_A dW_B = 0$) converging in finite time to a single joint outcome $(a^*,b^*)$ with exact joint L\"uders probabilities $|\braket{a,b_\theta}{\Phi^+}|^2$ (correlation $\langle Z_A B_\theta\rangle = \cos\theta$). \emph{However, this two-observer construction is not Markovian on $\rho_{AB}$ alone:} at $\theta=0$, the sole nonzero coherence of $\ket{\Phi^+}$ is $\rho_{00,11} = \frac{1}{2}\mu_A\mu_B$, so $(\mu_A,\mu_B)=(1,0)$ and $(0,1)$ produce the identical diagonal matrix $\rho_{AB}$ yet different future evolutions. Thus, unlike single-observer Theorem~\ref{thm:exitD1}, this two-observer model lives on the \emph{extended state} $(\rho_{AB}, \mu_A, \mu_B)$.
+
+\subsubsection{Smooth-Coupled Variant (Exit D2) and Non-Commuting Hamiltonians}
+In Stage-Gated D1, if a persistent non-commuting Hamiltonian $H = \omega\sigma_x$ continuously regenerates off-diagonal coherence during a $Z$-basis measurement, the set $\{t : \mu_t = 0\}$ has Lebesgue measure zero, freezing Eq.~\eqref{eq:D1_diag}. To probe this regime on a single qubit ($\rho_t = \begin{pmatrix}p_t & z_t \\ z_t^* & 1-p_t\end{pmatrix}$, $r_t = |z_t|$, $u_t := p_t(1-p_t)-r_t^2 = \det\rho_t$), adding $-i[\omega\sigma_x,\rho_t]\,dt$ ($\dot{p} = -2\omega\,\mathrm{Im}\,z$, $\dot{z} = +i\omega(2p-1)$) yields the smooth-coupled Bloch-ball SDE (Exit~D2):
+\begin{align}
+\label{eq:D2_z}
+dz_t &= \bigl(+i\omega(2p_t-1) - \Gamma z_t\bigr)\,dt + \sqrt{2\Gamma\frac{u_t}{r_t}}\,z_t\,dW_t^{(1)}, \\
+\label{eq:D2_p}
+dp_t &= -2\omega\,\mathrm{Im}(z_t)\,dt + \sigma_p \frac{u_t}{\sqrt{p_t(1-p_t)}}\,dW_t^{(2)},
+\end{align}
+with radial noise vanishing as $\sqrt{2\Gamma r_t u_t} \to 0$ when $r_t \to 0$. Unitary evolution preserves $\det\rho_t = u_t$, while near $u_t \to 0^+$ with $r_t > 0$, It\^o's lemma gives $du_t = [2\Gamma r_t^2 - O(u_t)]\,dt - 2\sqrt{2\Gamma}\,r_t^{3/2}\sqrt{u_t}\,dW_t^{(1)} + O(u_t)\,dW_t^{(2)}$, whose Feller entrance condition $2(2\Gamma r_t^2) \ge 8\Gamma r_t^3 \iff r_t \le \frac{1}{2}$ holds uniformly on the Bloch ball. Because the drift of Eqs.~\eqref{eq:D2_z}--\eqref{eq:D2_p} is linear in $(p_t, z_t)$ and the noise has zero mean and bounded variance, the exact ensemble averages $(\E[p_t], \E[z_t])$ automatically obey the damped-Rabi Lindblad ODE. For $\omega=0$, we also consider a \emph{normalized} smooth-coupled variant (D2-norm) in which the radial diffusion coefficient matches the Jacobi scaling of Eq.~\eqref{eq:mu_sde}:
+\begin{align}
+\label{eq:D2_norm_r}
+dr_t &= -\Gamma r_t\,dt + \sqrt{2\Gamma r_t\bigl(\sqrt{p_t(1-p_t)} - r_t\bigr)}\,dW_t^{(1)}, \\
+\label{eq:D2_norm_p}
+dp_t &= \sigma_p\!\left(1 - \frac{r_t^2}{p_t(1-p_t)}\right)\!\sqrt{p_t(1-p_t)}\,dW_t^{(2)}.
+\end{align}
+As shown in Section~\ref{sec:numerics}, however, exact finite-time hitting for both Eqs.~\eqref{eq:D2_z}--\eqref{eq:D2_p} and Eqs.~\eqref{eq:D2_norm_r}--\eqref{eq:D2_norm_p} remains analytically open due to 2D corner dynamics near $(p=0, r=0)$.
+
+\section{Numerical Illustrations and Cross-Checks}
+\label{sec:numerics}
+
+All numerical entries in Tables~\ref{tab:six_models}--\ref{tab:dt_conv} and in the text below are produced by a single standalone Python/NumPy script (\texttt{reproduce\_one\_outcome\_tables.py}, provided as supplementary material, with explicit NumPy seeds \texttt{1001}--\texttt{6001}). We use Milstein discretization for 1D Jacobi and 1D Wright--Fisher SDEs, a pairwise-flux Euler scheme with clipping and simplex renormalization for multi-allele ($d\ge 3$) Kimura diffusion (Table~\ref{tab:multilevel}), Euler--Milstein updates for D2 (Appendix~\ref{app:d2_numerics}), exact log-odds integration for CSL, exact Bayes-filter time-change sampling for Exit~C, and the symmetric positivity-preserving martingale integrator of Appendix~\ref{app:d2_numerics} for Eqs.~\eqref{eq:D2_z}--\eqref{eq:D2_p} under $H = \omega\sigma_x$. All uncertainties are standard errors ($\mathrm{SE} = s/\sqrt{N}$).
+
+\subsection{Equal-Budget Comparison and Unbiased Gisin/HJW Signaling Test}
+
+Because populations are exact martingales ($\E[p_t]=p_0$) in all six models, off-diagonal coherence is the sole potential signaling channel. To test operational no-signaling without upward bias, we apply the Gisin/HJW ensemble test~\cite{Gisin1989,HJW1993} comparing two pure decompositions of $\rho = \begin{pmatrix}0.5 & 0.25 \\ 0.25 & 0.5\end{pmatrix}$: $\mathcal{E}_1 = \{0.75\ketbra{+}{+}, 0.25\ketbra{-}{-}\}$ ($p_0=0.5$) versus $\mathcal{E}_2 = \{0.5\ketbra{u}{u}, 0.5\ketbra{v}{v}\}$ with $p_u = \frac{1}{2}+\frac{\sqrt{3}}{4} \approx 0.9330$, $p_v = 1-p_u$ (identical coherence $+0.25$, unbalanced populations). We report the unbiased signed difference $\Delta z := \E[z_{t=1}^{(\mathcal{E}_1)}] - \E[z_{t=1}^{(\mathcal{E}_2)}] \pm \mathrm{SE}$ and its $z$-score.
+
+Table~\ref{tab:six_models} summarizes the six-model audit ($p_0=0.3$, $\Gamma=1.0$, $\sigma_p = \sqrt{2\Gamma}$, $N=4{,}000$, seeds \texttt{1001}--\texttt{1006}):
+\begin{enumerate}
+\item \textbf{CSL} passes Born and no-signaling ($z=-1.31$), matches Lindblad coherence ($0.1683 \pm 0.0024$ vs $0.1686$), and sits above the tightened Theorem~\ref{thm:nogo} log-tail floor ($\E[\ln p_1] = -3.582 \pm 0.049 > -4.004$).
+\item \textbf{Naive Pure Wright--Fisher} (Milstein scheme, $\sigma=\sqrt{2\Gamma}$ so initial dephasing at $p_0=0.5$ equals $\Gamma$) violates Lindblad linearity ($0.0680$ vs $0.1686$) and fails the signed HJW signaling test at $+12.83\sigma$ ($\Delta z = +0.02425 \pm 0.00189$).
+\item \textbf{Exits A, C, and D1} all pass Born conservation, Lindblad coherence, and signed no-signaling ($|z| \le 1.03$) while agreeing with their exact analytical mean collapse times within $2\sigma$ ($1.001 \pm 0.016$ vs $1.000$, $2.018 \pm 0.023$ vs $2.000$, and $2.221 \pm 0.018$ vs $2.256$). Note that because the jump clock of Exit~A and the Jacobi factor $\mu_t$ of Exit~D1 are state-independent, their HJW columns compare two independent copies of the same process, and the mean times of Exits~A and~C are empirical means of drawn jump/deadline times (serving as sampling cross-checks); the genuinely informative signaling tests are CSL (null control), naive pure Wright--Fisher (positive control), Exit~C, and Exit~D2, whose trajectories depend explicitly on $p$.
+\end{enumerate}
+
+\begin{table*}[t]
+\centering
+\caption{Equal-budget seeded Monte Carlo audit of six collapse models ($p_0=0.3$, $\Gamma=1.0$, $\sigma_p=\sqrt{2\Gamma}$, $N=4{,}000$, seeds \texttt{1001}--\texttt{1006}; $t_{\mathrm{check}}=1.0$; $dt=10^{-3}$ for CSL/WF and $5\times 10^{-4}$ for D1/D2). Signed Gisin/HJW coherence differences $\Delta z \pm \mathrm{SE}$ test no-signaling (populations are exact martingales in all six models). Analytic hitting status is proved in Sections~\ref{sec:nogo}--\ref{sec:exits}.}
+\label{tab:six_models}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+Model (Seed) & Born Emp. $\pm$ SE & Coh. $t=1$ $\pm$ SE & Signed HJW $\Delta z \pm$ SE ($z$) & Analytic Hit & Mean $\tau \pm$ SE (Theory) \\
+ & (Target $0.3000$) & (Target $0.1686$) & (Null $= 0$) & Status & \\
+\midrule
+CSL Homodyne (\texttt{1001}) & $0.3075 \pm 0.0073$ & $0.1683 \pm 0.0024$ & $-0.00297 \pm 0.00227$ ($-1.31$) & Never (Thm.~\ref{thm:nogo}) & $\infty$ ($\infty$) \\
+Naive Pure WF (\texttt{1002}) & $0.3008 \pm 0.0073$ & $0.0680 \pm 0.0025$ & $\mathbf{+0.02425 \pm 0.00189}$ ($\mathbf{+12.83}$) & Finite (Sig.) & $0.614 \pm 0.008$ ($0.611$) \\
+Exit A: Poisson (\texttt{1003}) & $0.3016 \pm 0.0072$ & $0.1691 \pm 0.0035$ & $+0.00100 \pm 0.00266$ ($+0.38$) & Finite (Jump) & $1.001 \pm 0.016$ ($1.000$) \\
+Exit C: Erlang-2 (\texttt{1004}) & $0.2925 \pm 0.0072$ & $0.1698 \pm 0.0028$ & $-0.00253 \pm 0.00246$ ($-1.03$) & Finite (Prop.~1) & $2.018 \pm 0.023$ ($2.000$) \\
+\textbf{Exit D1: Stage-Gated (\texttt{1005})} & $0.2949 \pm 0.0072$ & $0.1691 \pm 0.0025$ & $-0.00079 \pm 0.00189$ ($-0.42$) & Finite (Thm.~\ref{thm:exitD1}) & $\mathbf{2.221 \pm 0.018}$ ($\mathbf{2.256}$) \\
+Exit D2: Smooth$^*$ (\texttt{1006}) & $0.3043 \pm 0.0073$ & $0.1677 \pm 0.0019$ & $-0.00021 \pm 0.00135$ ($-0.16$) & Open$^*$ & --- (open) \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\subsection{Multi-Level ($d=3,4$), Extended Two-Observer, Step-Size, and Damped-Rabi Audits}
+
+Table~\ref{tab:multilevel} cross-checks Eq.~\eqref{eq:exact_tau} for $d=3$ ($p_0=[0.5,0.3,0.2]$, seed \texttt{2001}) and $d=4$ ($p_0=[0.4,0.3,0.2,0.1]$, seed \texttt{2002}) over $N=2{,}000$ trajectories ($dt=10^{-3}$, $t_{\mathrm{final}}=14.0$). Both $\E[\tau_1]$ and $\E[\tau_{\mathrm{tot}}]$ agree with analytical theory within $1.2\sigma$.
+
+\begin{table}[t]
+\centering
+\caption{Multi-level Stage-Gated D1 cross-check ($N=2{,}000$, $\Gamma=1.0$, $\sigma_p=\sqrt{2}$, $dt=10^{-3}$, seeds \texttt{2001}--\texttt{2002}).}
+\label{tab:multilevel}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{cccc}
+\toprule
+$d$ & Max Born Err (SE) & $\E[\tau_1] \pm$ SE (Th.) & $\E[\tau_{\mathrm{tot}}] \pm$ SE (Th.) \\
+\midrule
+3 & $0.0085$ ($0.0112$) & $1.623 \pm 0.024$ ($1.645$) & $2.422 \pm 0.027$ ($2.420$) \\
+4 & $0.0180$ ($0.0110$) & $1.625 \pm 0.023$ ($1.645$) & $2.445 \pm 0.026$ ($2.474$) \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+As a consistency check of the extended-state two-observer model $(\rho_{AB},\mu_A,\mu_B)$ of Section~\ref{sec:two_obs} on $\ket{\Phi^+}$ ($\theta=\pi/4$, $\Gamma_A=1.0$, $\Gamma_B=1.3$, $\sigma_p=1.5$, $t_{\mathrm{final}}=14.0$, $N=1{,}500$, $dt=10^{-3}$, seed \texttt{5001}), $100$ audited trajectories checked every $0.25$ time units satisfy $\min\lambda(\rho_{AB}(t)) \ge -5.8\times 10^{-17}$, the $t=1$ ensemble matrix matches $(e^{\mathcal{L}_A}\otimes e^{\mathcal{L}_B})(\rho_{AB}(0))$ within max entry error $0.0021$, and the single correlator $\langle Z_A B_{\pi/4}\rangle = 0.697 \pm 0.019$ matches the joint L\"uders target $1/\sqrt{2} = 0.7071$ (confirming consistency with Born statistics rather than providing an independent Bell test).
+
+Table~\ref{tab:dt_conv} audits step-size convergence across a $32\times$ range of $dt$ using independent seeds (\texttt{3000}--\texttt{3003} for D1, \texttt{4000}--\texttt{4003} for normalized D2; $N=2{,}000$). Stage-Gated D1 shows zero $dt$-drift: all four estimates lie within $0.67\sigma$ of the exact value $2.2558$. By contrast, normalized smooth-coupled D2 (Eqs.~\eqref{eq:D2_norm_r}--\eqref{eq:D2_norm_p}, integrated with the exact Milstein scheme of Appendix~\ref{app:d2_numerics}) climbs monotonically by $+23\sigma$ from $2.053 \pm 0.021$ to $2.879 \pm 0.029$ as $dt \to 0$, with no sign of flattening (the slope per decade of $dt$ increases slightly), traced to trajectories where $p_t$ nears $\{0,1\}$ while $r_t>0$ (so It\^o curvature of $[p(1-p)]^{-1/2}$ pushes $\mu_t$ upward toward $1$). While exact finite-time hitting for D2 remains \emph{analytically open}, the numerical evidence leans against genuine finite-time attainment (or finite mean hitting time) and points instead to boundary-clipping artifacts; we therefore omit a discrete mean hitting time for D2 in Table~\ref{tab:six_models}.
+
+Finally, to validate the positivity-preserving integrator of Appendix~\ref{app:d2_numerics} for Eqs.~\eqref{eq:D2_z}--\eqref{eq:D2_p} under the non-commuting Hamiltonian $H = \omega\sigma_x$ on observables genuinely coupled to $\omega$, we initialize in $\ket{0}$ ($p_0=1$, $z_0=0$) with $\omega=1.0$, $\Gamma=2.0$, $\sigma_p=2.0$, $dt=5\times 10^{-4}$, $N=2{,}000$ (seed \texttt{6001}). Because the exact SDE already obeys the Lindblad ODE linearly in expectation, this check validates the unbiasedness of the discrete scheme (rather than a new physical effect). Solving the exact linear expectation recurrence of Appendix~\ref{app:d2_numerics} at $dt=5\times 10^{-4}$ gives $\langle\sigma_z\rangle_{\mathrm{split}}(0.5) = 0.659700$ and $\langle\sigma_y\rangle_{\mathrm{split}}(0.5) = -0.533240$, compared to the continuous Lindblad values $0.659700$ and $-0.533507$ (so the operator-splitting error on $\langle\sigma_y\rangle$ is only $2.7\times 10^{-4}$, or $0.08\,\mathrm{SE}$). The Monte Carlo simulation yields $\langle\sigma_z\rangle(0.5) = 0.6608 \pm 0.0058$ ($z=+0.19$) and $\langle\sigma_y\rangle(0.5) = -0.5268 \pm 0.0033$ ($z=+2.05$, a Monte Carlo fluctuation), while maintaining $\min\lambda(\rho_t) \ge -1.1\times 10^{-16}$ and trajectory polarization $\E[|\langle\sigma_z\rangle|]=0.618$ at $t=4.0$.
+
+\begin{table}[t]
+\centering
+\caption{Step-size convergence audit ($N=2{,}000$, seeds \texttt{3000}--\texttt{3003} for D1 and \texttt{4000}--\texttt{4003} for normalized D2 with the exact $(1-\mu^4)$ Milstein scheme; $p_0=0.3$, $\Gamma=1.0$, $\sigma_p=\sqrt{2}$). Stage-Gated D1 agrees with exact theory ($2.2558$) within $0.67\sigma$ across all $dt$; normalized smooth-coupled D2 drifts upward by $23\sigma$.}
+\label{tab:dt_conv}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{cccc}
+\toprule
+$dt$ & D1 $\E[\tau] \pm$ SE & D1 $z$ vs $2.2558$ & D2 (Norm) $\E[\tau] \pm$ SE \\
+\midrule
+$2.0\times 10^{-3}$ & $2.264 \pm 0.027$ & $+0.30$ & $2.053 \pm 0.021$ \\
+$5.0\times 10^{-4}$ & $2.263 \pm 0.026$ & $+0.26$ & $2.328 \pm 0.024$ \\
+$1.25\times 10^{-4}$ & $2.241 \pm 0.026$ & $-0.59$ & $2.660 \pm 0.027$ \\
+$6.25\times 10^{-5}$ & $2.238 \pm 0.026$ & $-0.67$ & $2.879 \pm 0.029$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\section{Discussion and Limitations}
+\label{sec:discussion}
+
+Theorem~\ref{thm:nogo} and Theorem~\ref{thm:exitD1} isolate a crisp structural boundary for pure-dephasing objective collapse models. If one demands autonomous Markovian dynamics on the quantum state space, continuous paths, exact finite-time zero-tail collapse, Born conservation, and linear Lindblad ensemble averages, individual trajectories cannot remain on the pure-state manifold $\mathbb{C}P^{d-1}$: they must pass transiently through mixed density matrices $\mathcal{D}(\mathcal{H})$. This offers a concrete dynamical perspective on \emph{Density-Matrix Realism}~\cite{Chen2019}.
+
+Four limitations must be emphasized transparently:
+\begin{enumerate}
+\item \emph{Operational indistinguishability on ensemble averages:} Because CSL, Exit~A, Exit~C, and Exit~D1 all unravel the identical single-time Lindblad semigroup $e^{\mathcal{L}t}$, no standard ensemble tomography measuring $\Tr(O\bar{\rho}_t)$ can distinguish them. They differ only in nonlinear trajectory moments (such as $\E[p_t^2]$), which could become observable only if an external classical or gravitational field coupled directly to individual ontic states.
+\item \emph{Global state dependence and multi-observer scaling:} Single-observer Exit~D1 is Markovian only on the \emph{global} density matrix of all entangled subsystems (since $\mu(\rho_A)=0 \ne \mu(\rho_{AB})=1$ on entangled states). Our simultaneous two-observer construction requires the extended state $(\rho_{AB},\mu_A,\mu_B)$ rather than $\rho_{AB}$ alone. Likewise, because $\sigma_p$ is an unconstrained free parameter, macroscopic amplification ($\E[\tau_{\mathrm{tot}}]\propto 1/N$ for an $N$-particle pointer) is not derived: it would require prescribing $\sigma_{p,N}^2 \propto N$ and resolving the multi-observer Markovian formulation on $\rho$ alone.
+\item \emph{Physical status of tails in Exit D1:} During $[0, \tau_{\mathrm{tot}})$, losing weights are relocated from pure-state amplitudes into classical mixed-state populations of $D_0$ before hitting exact zero at $\tau_{\mathrm{tot}} < \infty$.
+\item \emph{Non-commuting Hamiltonians and open problems:} Theorem~\ref{thm:nogo} and Theorem~\ref{thm:exitD1} assume pure dephasing ($[H,P_k]=0$). Under persistent $[H,P_k]\ne 0$, D1's indicator $\mathbf{1}_{\{\mu_t=0\}}$ stalls, while exact finite-time hitting for smooth-coupled D2 remains open. Determining the tight speed-limit constant in Eq.~\eqref{eq:vbound} for uniform dephasing when $d \ge 3$ and constructing a strictly Markovian multi-observer mixed-state collapse SDE under non-commuting Hamiltonians are left for future work.
+\end{enumerate}
+
+\appendix
+
+\section{Numerical Discretization Schemes for Exit D2}
+\label{app:d2_numerics}
+
+To ensure that every numerical figure in Section~\ref{sec:numerics} is tied to an explicit discrete scheme, we specify the two discretizations used for Exit~D2.
+
+\emph{1. Normalized D2 in Table~\ref{tab:dt_conv} ($\omega=0$).}
+Eqs.~\eqref{eq:D2_norm_r}--\eqref{eq:D2_norm_p} are integrated on a step $dt$ with independent increments $\Delta W_1, \Delta W_2 \sim \mathcal{N}(0, dt)$. Writing $q = p(1-p)$ and $b(p) = \sigma_p(\sqrt{q} - r^2/\sqrt{q})$, holding $r$ fixed gives $\frac{1}{2}b(p)b'(p) = \frac{\sigma_p^2}{4}(1-\mu^4)(1-2p)$ with $\mu = r/\sqrt{q}$. The Milstein update on $p_n \in (0,1)$ is therefore
+\begin{align*}
+p_{n+1} &= \mathrm{clip}_{[0,1]}\!\Bigl[p_n + \sigma_p(1-\mu_n^2)\sqrt{p_n(1-p_n)}\,\Delta W_2 \\
+&\qquad\qquad\quad + \frac{\sigma_p^2}{4}(1-\mu_n^4)(1-2p_n)(\Delta W_2^2 - dt)\Bigr],
+\end{align*}
+followed (for $r_n > 0$) by a Milstein update on $r_n$ with $r_{\max,n} = \sqrt{p_n(1-p_n)}$ and $r_{\max,n+1} = \sqrt{p_{n+1}(1-p_{n+1})}$,
+\begin{align*}
+\tilde{r}_{n+1} &= r_n - \Gamma r_n\,dt + \sqrt{2\Gamma r_n(r_{\max,n}-r_n)}\,\Delta W_1 \\
+&\quad + \frac{\Gamma}{2}(r_{\max,n} - 2r_n)(\Delta W_1^2 - dt),
+\end{align*}
+with reflection $\tilde{r}_{n+1} \mapsto 2r_{\max,n+1} - \tilde{r}_{n+1}$ if $\tilde{r}_{n+1} > r_{\max,n+1}$ and absorption at $0$. Table~\ref{tab:six_models} (row D2) uses a plain Euler update for $p_n$ paired with the Milstein update for $r_n$ on Eqs.~\eqref{eq:D2_z}--\eqref{eq:D2_p} at $\omega=0$ with $u_n = p_n(1-p_n)-r_n^2$.
+
+\emph{2. Symmetric positivity-preserving martingale integrator for $H = \omega\sigma_x$.}
+Under $H = \omega\sigma_x$ starting from $\ket{0}$, naive upper-boundary reflection on $r_n$ introduces a strong downward bias whenever $p_{n+1}$ fluctuates toward $1$ and shrinks $r_{\max,n+1}$. We eliminate this bias via a three-step operator splitting over $dt$ (with $z_n = x_n + i y_n$, $s_{z,n} = 2p_n - 1$):
+\begin{enumerate}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
+\item \emph{Exact unitary rotation:}
+\begin{align*}
+s_z' &= s_{z,n}\cos(2\omega dt) - 2y_n\sin(2\omega dt), \\
+y' &= y_n\cos(2\omega dt) + \frac{1}{2}s_{z,n}\sin(2\omega dt),
+\end{align*}
+with $p' = \frac{1}{2}(1+s_z')$, $x'=x_n$, and $r' = \sqrt{(x')^2 + (y')^2}$, preserving $u' = p'(1-p')-(r')^2 \ge 0$ identically.
+\item \emph{Symmetric truncated martingale step for $p$:} Let $p_{\mathrm{lo,hi}} = \frac{1}{2} \mp \sqrt{\frac{1}{4}-(r')^2}$ and $m_p = \min(p'-p_{\mathrm{lo}}, p_{\mathrm{hi}}-p') \ge 0$. Set
+\begin{equation*}
+p_{n+1} = p' + \mathrm{clip}_{[-m_p, m_p]}\!\left(\sigma_p \frac{u'}{\sqrt{p'(1-p')}}\,\Delta W_2\right).
+\end{equation*}
+Because $\Delta W_2$ is symmetrically distributed around $0$, $\E[p_{n+1}\mid\mathcal{F}_n] = p'$ identically and $p_{n+1}(1-p_{n+1}) \ge (r')^2$.
+\item \emph{Symmetric truncated radial step for $z$:} Let $r_{\max} = \sqrt{p_{n+1}(1-p_{n+1})}$, $r_{\mathrm{det}} = r' e^{-\Gamma dt} \le r_{\max}$, and $m_r = \min(r_{\mathrm{det}}, r_{\max}-r_{\mathrm{det}}) \ge 0$. Set
+\begin{equation*}
+r_{n+1} = r_{\mathrm{det}} + \mathrm{clip}_{[-m_r, m_r]}\!\left(\sqrt{2\Gamma r_{\mathrm{det}}(r_{\max}^2 - r_{\mathrm{det}}^2)}\,\Delta W_1\right),
+\end{equation*}
+and rescale $(x_{n+1}, y_{n+1}) = (r_{n+1}/r')(x', y')$ for $r' > 0$. By symmetry of $\Delta W_1$, $\E[z_{n+1}\mid\mathcal{F}_n] = z' e^{-\Gamma dt}$ identically and $0 \le r_{n+1} \le r_{\max}$, guaranteeing $\rho_{n+1} \ge 0$ with zero boundary-reflection bias (leaving only standard $O(dt)$ Lie--Trotter splitting error).
+\end{enumerate}
+
+\vspace{-8pt}
+\begin{thebibliography}{99}
+\bibitem{GRW1986} G.~C. Ghirardi, A.~Rimini, and T.~Weber, Phys. Rev. D \textbf{34}, 470 (1986).
+\bibitem{Pearle1989} P.~Pearle, Phys. Rev. A \textbf{39}, 2277 (1989).
+\bibitem{GPR1990} G.~C. Ghirardi, P.~Pearle, and A.~Rimini, Phys. Rev. A \textbf{42}, 78 (1990).
+\bibitem{BassiGhirardi2003} A.~Bassi and G.~C. Ghirardi, Phys. Rep. \textbf{379}, 257 (2003).
+\bibitem{Bassi2013} A.~Bassi, K.~Lochan, S.~Satin, T.~P. Singh, and H.~Ulbricht, Rev. Mod. Phys. \textbf{85}, 471 (2013).
+\bibitem{Gisin1984} N.~Gisin, Phys. Rev. Lett. \textbf{52}, 1657 (1984).
+\bibitem{Gisin1989} N.~Gisin, Helv. Phys. Acta \textbf{62}, 363 (1989).
+\bibitem{HJW1993} L.~P. Hughston, R.~Jozsa, and W.~K. Wootters, Phys. Lett. A \textbf{183}, 14 (1993).
+\bibitem{WisemanDiosi2001} H.~M. Wiseman and L.~Di\'osi, Chem. Phys. \textbf{268}, 91 (2001).
+\bibitem{BrodyHughston2005} D.~C. Brody and L.~P. Hughston, J. Math. Phys. \textbf{46}, 082101 (2005).
+\bibitem{BrodyHughston2006} D.~C. Brody and L.~P. Hughston, J. Phys. A: Math. Gen. \textbf{39}, 833 (2006).
+\bibitem{Mertens2021} L.~Mertens, M.~Wesseling, N.~Vercauteren, A.~Corrales-Salazar, and J.~van Wezel, Phys. Rev. A \textbf{104}, 052224 (2021).
+\bibitem{RevuzYor1999} D.~Revuz and M.~Yor, \emph{Continuous Martingales and Brownian Motion}, 3rd ed. (Springer, Berlin, 1999).
+\bibitem{YamadaWatanabe1971} T.~Yamada and S.~Watanabe, J. Math. Kyoto Univ. \textbf{11}, 155 (1971).
+\bibitem{Ethier1976} S.~N. Ethier, Comm. Pure Appl. Math. \textbf{29}, 483 (1976).
+\bibitem{Kimura1955} M.~Kimura, Proc. Natl. Acad. Sci. U.S.A. \textbf{41}, 144 (1955).
+\bibitem{Littler1975} R.~A. Littler, Math. Biosci. \textbf{25}, 151 (1975).
+\bibitem{Baxter2007} G.~J. Baxter, R.~A. Blythe, and A.~J. McKane, Math. Biosci. \textbf{209}, 124 (2007).
+\bibitem{Chen2019} E.~K. Chen, Brit. J. Philos. Sci. \textbf{72}, No.~4 (2021), doi:10.1093/bjps/axy068 [arXiv:1712.01666]; see also E.~K. Chen, \emph{Density Matrix Realism}, arXiv:2405.01025 (2024).
+\end{thebibliography}
+
+\end{document}
